@@ -675,8 +675,178 @@ class ContactManager:
             self.core.run()
 
 
+class FinanceRecord:
+    def __init__(self, id, amount, category, date, description):
+        self.id = id
+        self.amount = amount
+        self.category = category
+        self.date = date
+        self.description = description
+
+    def json(self):
+        return {
+            'id': self.id,
+            'amount': self.amount,
+            'category': self.category,
+            'date': self.date,
+            'description': self.description
+        }
+
+
 class FinanceManager:
-    pass
+    def __init__(self, core):
+            self.records = []
+            self.core = core
+            self.load_records()
+
+    def load_records(self):
+        if os.path.isfile('finance.json'):
+            with open("finance.json", "r") as file:
+                self.records = [FinanceRecord(**item) for item in json.load(file)]
+
+    def save_records(self):
+         with open("finance.json", "w") as file:
+            json.dump([record.json() for record in self.records], file)
+
+    def add_record(self):
+        while True:
+            try:
+                amount = float(
+                    input('Введите сумму операции (положительное для доходов, отрицательное для расходов): '))
+                if amount == 0:
+                    raise ValueError("Сумма не может быть нулевой.")
+                break
+            except ValueError:
+                print('Это не похоже на сумму. Попробуйте снова.')
+
+        category = input('Введите категорию операции: ')
+        while True:
+            try:
+                date_str = input('Введите дату операции (ДД-ММ-ГГГГ): ')
+                date = datetime.strptime(date_str, "%d-%m-%Y").strftime("%d-%m-%Y")
+                break
+            except ValueError:
+                print('Неверный формат даты. Попробуйте снова.')
+
+        description = input('Введите описание операции: ')
+
+        record_id = max((record.id for record in self.records), default=0) + 1
+        record = FinanceRecord(
+            id=record_id,
+            amount=amount,
+            category=category,
+            date=date,
+            description=description
+        )
+        self.records.append(record)
+        self.save_records()
+        print('Финансовая запись добавлена.')
+        self.menu()
+
+    def view_records(self):
+        if not self.records:
+            print('Нет финансовых записей.')
+            self.menu()
+            return
+
+        filter_option = input('Хотите отфильтровать по дате или категории? (дата/категория/нет): ').strip().lower()
+        filtered_records = self.records
+
+        if filter_option == 'дата':
+            date_str = input('Введите дату для фильтрации (ДД-ММ-ГГГГ): ')
+            filtered_records = [record for record in self.records if record.date == date_str]
+        elif filter_option == 'категория':
+            category = input('Введите категорию для фильтрации: ')
+            filtered_records = [record for record in self.records if record.category.lower() == category.lower()]
+
+        if filtered_records:
+            print('Финансовые записи:')
+            for record in filtered_records:
+                print(
+                    f'ID: {record.id}, Сумма: {record.amount}, Категория: {record.category}, Дата: {record.date}, Описание: {record.description}')
+        else:
+            print('Нет записей, соответствующих критериям фильтрации.')
+
+        self.menu()
+
+    def generate_report(self):
+        start_date_str = input('Введите начальную дату (ДД-ММ-ГГГГ): ')
+        end_date_str = input('Введите конечную дату (ДД-ММ-ГГГГ): ')
+        start_date = datetime.strptime(start_date_str, "%d-%m-%Y")
+        end_date = datetime.strptime(end_date_str, "%d-%m-%Y")
+
+        report_records = [record for record in self.records if
+                            start_date <= datetime.strptime(record.date, "%d-%m-%Y") <= end_date]
+
+        total_income = sum(record.amount for record in report_records if record.amount > 0)
+        total_expense = sum(record.amount for record in report_records if record.amount < 0)
+        balance = total_income + total_expense
+
+        print(f'Отчет за период с {start_date_str} по {end_date_str}:')
+        print(f'Общий доход: {total_income}')
+        print(f'Общие расходы: {total_expense}')
+        print(f'Баланс: {balance}')
+
+        self.menu()
+
+    def import_records(self):
+        while True:
+            try:
+                filepath = input('Укажите путь до файла для импорта (CSV): ')
+                with open(filepath, 'r', encoding='utf-8') as file:
+                    reader = csv.DictReader(file)
+                    records = []
+                    for item in reader:
+                        if set(item.keys()) != {'id', 'amount', 'category', 'date', 'description'}:
+                            print('Ошибка входного файла. Убедитесь, что он имеет правильный формат.')
+                            raise ValueError()
+                        item['amount'] = float(item['amount'])
+                        records.append(FinanceRecord(**item))
+                    self.records.extend(records)
+                    print('Финансовые записи успешно импортированы из CSV-файла.')
+                    break
+            except Exception as e:
+                print(f'Ошибка: {e}. Попробуйте снова.')
+        self.save_records()
+        self.menu()
+
+    def export_records(self):
+        filepath = input('Укажите название файла для экспорта (без расширения): ')
+        with open(f'{filepath}.csv', 'w', newline='', encoding='utf-8') as outfile:
+            writer = csv.writer(outfile)
+            writer.writerow(['id', 'amount', 'category', 'date', 'description'])
+            for record in self.records:
+                writer.writerow([record.id, record.amount, record.category, record.date, record.description])
+        print('Финансовые записи успешно экспортированы в CSV-файл.')
+        self.menu()
+
+    def menu(self):
+        while True:
+            try:
+                print('1. Добавить финансовую запись')
+                print('2. Просмотреть финансовые записи')
+                print('3. Сгенерировать отчет')
+                print('4. Импортировать финансовые записи')
+                print('5. Экспортировать финансовые записи')
+                print('6. Назад')
+                choice = int(input('Выберите действие: '))
+                assert 1 <= choice <= 6
+                break
+            except Exception:
+                print('Это не похоже на цифру или выбран недопустимый пункт.')
+
+        if choice == 1:
+            self.add_record()
+        elif choice == 2:
+            self.view_records()
+        elif choice == 3:
+            self.generate_report()
+        elif choice == 4:
+            self.import_records()
+        elif choice == 5:
+            self.export_records()
+        else:
+            self.core.run()
 
 
 class Calculator:
@@ -688,7 +858,7 @@ class Main:
         self.note = NoteManager(self)
         self.task = TaskManager(self)
         self.contact = ContactManager(self)
-        self.finance = FinanceManager()
+        self.finance = FinanceManager(self)
         self.calc = Calculator()
 
     def run(self):
