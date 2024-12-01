@@ -850,7 +850,34 @@ class FinanceManager:
 
 
 class Calculator:
-    pass
+    def __init__(self, core):
+        self.core = core
+
+    def menu(self):
+        while True:
+            try:
+                print('1. Посчитать выражение')
+                print('2. Назад')
+
+                choice = int(input('Выберите действие: '))
+                assert 1 <= choice <= 2
+                break
+            except Exception:
+                print('Это не похоже на цифру или выбран недопустимый пункт.')
+
+        if choice == 1:
+            try:
+                request = input('Напишите выражение: ')
+                if set(request) > set('0123456789.-+*/'):
+                    raise ValueError()
+                print(f'Результат: {eval(request)}')
+            except ValueError:
+                print('Неизвестный метод')
+            except ZeroDivisionError:
+                print('Нельзя делить на ноль')
+            self.menu()
+        else:
+            self.core.run()
 
 
 class Main:
@@ -859,7 +886,7 @@ class Main:
         self.task = TaskManager(self)
         self.contact = ContactManager(self)
         self.finance = FinanceManager(self)
-        self.calc = Calculator()
+        self.calc = Calculator(self)
 
     def run(self):
         while True:
