@@ -38,8 +38,8 @@ class NoteManager:
                 self.notes = list(Note(**item) for item in json.load(file))
 
     def save_notes(self):
-        with open("notes.json", "w") as file:
-            json.dump([note.json() for note in self.notes], file)
+        with open("notes.json", "w", encoding='utf-8') as file:
+            json.dump([note.json() for note in self.notes], file, ensure_ascii=False)
 
     def create_note(self):
         title = input('Введите название: ')
@@ -252,8 +252,8 @@ class TaskManager:
                 self.tasks = list(Task(**item) for item in json.load(file))
 
     def save_tasks(self):
-        with open("tasks.json", "w") as file:
-            json.dump([task.json() for task in self.tasks], file)
+        with open("tasks.json", "w", encoding="utf-8") as file:
+            json.dump([task.json() for task in self.tasks], file, ensure_ascii=False)
 
     def create_task(self):
         title = input('Введите название задачи: ')
@@ -497,8 +497,8 @@ class ContactManager:
                 self.contacts = [Contact(**item) for item in json.load(file)]
 
     def save_contacts(self):
-        with open("contacts.json", "w") as file:
-            json.dump([contact.json() for contact in self.contacts], file)
+        with open("contacts.json", "w", encoding='utf-8') as file:
+            json.dump([contact.json() for contact in self.contacts], file, ensure_ascii=False)
 
     def create_contact(self):
         name = input('Введите имя контакта: ')
@@ -705,8 +705,8 @@ class FinanceManager:
                 self.records = [FinanceRecord(**item) for item in json.load(file)]
 
     def save_records(self):
-         with open("finance.json", "w") as file:
-            json.dump([record.json() for record in self.records], file)
+         with open("finance.json", "w", encoding='utf-8') as file:
+            json.dump([record.json() for record in self.records], file, ensure_ascii=False)
 
     def add_record(self):
         while True:
